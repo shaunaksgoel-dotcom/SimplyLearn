@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Simply Learn</title>
+
+    <style>
+        body {
+            font-family: "Segoe UI", Arial, sans-serif;
+            background-color: #f2f6fb;
+            color: #2c3e50;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+        }
+
+        h1 {
+            font-size: 3rem;
+            margin-top: 30px;
+            color: #1f4fd8;
+        }
+
+        h2 {
+            font-weight: normal;
+            color: #555;
+            margin-bottom: 30px;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 900px;
+            margin: auto;
+        }
+
+        .upload-link {
+            display: inline-block;
+            margin: 20px 0;
+            padding: 12px 24px;
+            background-color: #1f4fd8;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+        }
+
+        .upload-link:hover {
+            background-color: #163bb5;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            text-align: left;
+        }
+
+        .filename {
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .status {
+            margin-top: 8px;
+            font-size: 1rem;
+        }
+
+        .done {
+            color: green;
+            font-weight: bold;
+        }
+
+        .processing {
+            color: orange;
+            font-weight: bold;
+        }
+
+        .failed {
+            color: red;
+            font-weight: bold;
+        }
+
+        .download-btn {
+            display: inline-block;
+            margin-top: 15px;
+            padding: 10px 18px;
+            background-color: #2ecc71;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 1rem;
+        }
+
+        .download-btn:hover {
+            background-color: #27ae60;
+        }
+    </style>
+</head>
+
+<body>
+
+<h1>📘 Simply Learn</h1>
+<h2>Turn your school files into podcasts, slideshows, videos, quizzes, summaries, and more! 🚀</h2>
+
+<div class="container">
+
+    <a href="/new" class="upload-link">➕ Upload New Files</a>
+
+    <div th:if="${#lists.isEmpty(files)}">
+        <p>No uploads yet — try adding one! 😊</p>
+    </div>
+
+    <div th:each="f : ${files}" class="card">
+
+        <div class="filename">
+            📄 <span th:text="${f.originalFilename}"></span>
+        </div>
+
+        <div class="status">
+            🔄 Type:
+            <span th:text="${f.conversionType}"></span>
+        </div>
+
+        <div class="status">
+            📌 Status:
+            <span th:text="${f.status}"
+                  th:classappend="
+                    ${f.status == 'COMPLETED'} ? 'done' :
+                    (${f.status == 'PROCESSING'} ? 'processing' : 'failed')
+                  ">
+            </span>
+        </div>
+
+        <!-- ✅ DOWNLOAD BUTTON (FIXED) -->
+        <div th:if="${f.status == 'COMPLETED'}">
+            <a th:href="@{'/download/' + ${f.id}}"
+               class="download-btn">
+                ⬇️ Download
+            </a>
+        </div>
+
+    </div>
+</div>
+
+</body>
+</html>
