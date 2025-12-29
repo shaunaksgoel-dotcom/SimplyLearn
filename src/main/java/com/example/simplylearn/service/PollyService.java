@@ -12,10 +12,13 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 
+import static reactor.netty.http.HttpConnectionLiveness.log;
+
 @Service
 public class PollyService {
 
-    private static final int MAX_CHARS = 2500;
+    // 🔐 SAFE limit for generative Polly (keep buffer)
+    private static final int MAX_CHARS = 1200;
 
     // ======================
     // 🎙️ PODCAST VOICES (2 speakers)
@@ -39,23 +42,22 @@ public class PollyService {
 
     public PollyService() {
         this.polly = PollyClient.builder()
-                .region(Region.US_EAST_1) // REQUIRED for generative voices
+                .region(Region.US_EAST_1)
                 .build();
     }
-    /**
-     * Single-speaker narration (used for VIDEO)
-     * One randomized generative voice for the entire narration
-     */
-    public void synthesizeSingleSpeakerPodcast(String script, Path outputPath) throws Exception {
 
-        // 🎲 Pick ONE voice for the whole video
-        List<VoiceId> videoVoices = List.of(
-                VoiceId.MATTHEW,
-                VoiceId.DANIELLE
+    // =========================================================
+    // 🎬 VIDEO — SINGLE SPEAKER, CHUNKED (FIXED)
+    // =========================================================
+    public void synthesizeSingleSpeakerPodcast(
+            String script,
+            Path outputPath
+    ) throws Exception {
+
+        // 🎲 Pick ONE voice for entire video
+        VoiceId voice = VIDEO_GENERATIVE_VOICES.get(
+                random.nextInt(VIDEO_GENERATIVE_VOICES.size())
         );
-
-        VoiceId chosenVoice =
-                videoVoices.get(new Random().nextInt(videoVoices.size()));
 
         try (OutputStream outputStream = Files.newOutputStream(outputPath)) {
 
@@ -69,28 +71,31 @@ public class PollyService {
                     continue;
                 }
 
-                String ssml = buildSsml(line);
+                // ✅ CHUNK LONG LINES SAFELY
+                for (String chunk : splitIntoChunks(line)) {
 
-                SynthesizeSpeechRequest request = SynthesizeSpeechRequest.builder()
-                        .engine(Engine.GENERATIVE)
-                        .voiceId(chosenVoice)
-                        .outputFormat(OutputFormat.MP3)
-                        .textType(TextType.SSML)
-                        .text(ssml)
-                        .build();
+                    String ssml = buildSsml(chunk);
 
-                try (ResponseInputStream<SynthesizeSpeechResponse> audio =
-                             polly.synthesizeSpeech(request)) {
+                    SynthesizeSpeechRequest request =
+                            SynthesizeSpeechRequest.builder()
+                                    .engine(Engine.GENERATIVE)
+                                    .voiceId(voice)
+                                    .outputFormat(OutputFormat.MP3)
+                                    .textType(TextType.SSML)
+                                    .text(ssml)
+                                    .build();
 
-                    audio.transferTo(outputStream);
+                    try (ResponseInputStream<SynthesizeSpeechResponse> audio =
+                                 polly.synthesizeSpeech(request)) {
+
+                        audio.transferTo(outputStream);
+                    }
+
+                    writePause(outputStream, 300);
                 }
-
-                // Natural pause between lines
-                writePause(outputStream, 300);
             }
         }
     }
-
 
     @PreDestroy
     public void close() {
@@ -98,17 +103,12 @@ public class PollyService {
     }
 
     // =========================================================
-    // 🎧 PODCAST (UNCHANGED, TWO SPEAKERS)
+    // 🎧 PODCAST (UNCHANGED)
     // =========================================================
-
-    /**
-     * Called by ConversionService for PODCAST
-     */
     public void synthesizePodcastToMp3(String script, Path outputPath) throws Exception {
 
         List<PodcastLine> lines = parseScript(script);
 
-        // 🎲 Pick TWO voices ONCE per podcast
         List<VoiceId> shuffled = new ArrayList<>(PODCAST_GENERATIVE_VOICES);
         Collections.shuffle(shuffled);
 
@@ -129,13 +129,14 @@ public class PollyService {
 
                 String ssml = buildSsml(line.text());
 
-                SynthesizeSpeechRequest request = SynthesizeSpeechRequest.builder()
-                        .engine(Engine.GENERATIVE)
-                        .voiceId(voice)
-                        .outputFormat(OutputFormat.MP3)
-                        .textType(TextType.SSML)
-                        .text(ssml)
-                        .build();
+                SynthesizeSpeechRequest request =
+                        SynthesizeSpeechRequest.builder()
+                                .engine(Engine.GENERATIVE)
+                                .voiceId(voice)
+                                .outputFormat(OutputFormat.MP3)
+                                .textType(TextType.SSML)
+                                .text(ssml)
+                                .build();
 
                 try (ResponseInputStream<SynthesizeSpeechResponse> audio =
                              polly.synthesizeSpeech(request)) {
@@ -143,59 +144,14 @@ public class PollyService {
                     audio.transferTo(outputStream);
                 }
 
-                // Natural conversational pause
                 writePause(outputStream, 250);
             }
         }
     }
 
     // =========================================================
-    // 🎬 VIDEO (NEW — ONE SPEAKER, RANDOMIZED ONCE)
+    // PODCAST SCRIPT PARSER
     // =========================================================
-
-    /**
-     * Called by ConversionService for VIDEO
-     * One generative speaker per entire video
-     */
-    public void synthesizeVideoNarrationToMp3(String script, Path outputPath) throws Exception {
-
-        // 🎲 Pick ONE voice per video
-        VoiceId voice = VIDEO_GENERATIVE_VOICES.get(
-                random.nextInt(VIDEO_GENERATIVE_VOICES.size())
-        );
-
-        List<String> chunks = splitIntoChunks(script);
-
-        try (OutputStream outputStream = Files.newOutputStream(outputPath)) {
-
-            for (String chunk : chunks) {
-
-                String ssml = buildSsml(chunk);
-
-                SynthesizeSpeechRequest request = SynthesizeSpeechRequest.builder()
-                        .engine(Engine.GENERATIVE)
-                        .voiceId(voice)
-                        .outputFormat(OutputFormat.MP3)
-                        .textType(TextType.SSML)
-                        .text(ssml)
-                        .build();
-
-                try (ResponseInputStream<SynthesizeSpeechResponse> audio =
-                             polly.synthesizeSpeech(request)) {
-
-                    audio.transferTo(outputStream);
-                }
-
-                // Slight pause between narration chunks
-                writePause(outputStream, 400);
-            }
-        }
-    }
-
-    // =========================================================
-    // SCRIPT PARSING (PODCAST ONLY)
-    // =========================================================
-
     private List<PodcastLine> parseScript(String script) {
 
         List<PodcastLine> result = new ArrayList<>();
@@ -207,10 +163,7 @@ public class PollyService {
 
             if (line.equals("[[SECTION_BREAK]]")) {
                 result.add(PodcastLine.sectionBreak());
-                continue;
-            }
-
-            if (line.startsWith("A:")) {
+            } else if (line.startsWith("A:")) {
                 result.add(new PodcastLine("A", line.substring(2).trim()));
             } else if (line.startsWith("B:")) {
                 result.add(new PodcastLine("B", line.substring(2).trim()));
@@ -221,11 +174,12 @@ public class PollyService {
     }
 
     // =========================================================
-    // TEXT CHUNKING (VIDEO)
+    // ✂️ CHUNKING (CRITICAL)
     // =========================================================
-
     private List<String> splitIntoChunks(String text) {
-
+System.out.println("Splitting text into chunks!");
+log.info("lol");
+log.error("lol");
         List<String> chunks = new ArrayList<>();
         StringBuilder current = new StringBuilder();
 
@@ -249,7 +203,6 @@ public class PollyService {
     // =========================================================
     // SSML
     // =========================================================
-
     private String buildSsml(String text) {
         return """
                 <speak>
@@ -270,18 +223,18 @@ public class PollyService {
     // =========================================================
     // PAUSES
     // =========================================================
-
     private void writePause(OutputStream outputStream, int millis) throws Exception {
 
         String ssml = "<speak><break time=\"" + millis + "ms\"/></speak>";
 
-        SynthesizeSpeechRequest request = SynthesizeSpeechRequest.builder()
-                .engine(Engine.GENERATIVE)
-                .voiceId(VoiceId.MATTHEW) // safe generative voice
-                .outputFormat(OutputFormat.MP3)
-                .textType(TextType.SSML)
-                .text(ssml)
-                .build();
+        SynthesizeSpeechRequest request =
+                SynthesizeSpeechRequest.builder()
+                        .engine(Engine.GENERATIVE)
+                        .voiceId(VoiceId.MATTHEW)
+                        .outputFormat(OutputFormat.MP3)
+                        .textType(TextType.SSML)
+                        .text(ssml)
+                        .build();
 
         try (ResponseInputStream<SynthesizeSpeechResponse> audio =
                      polly.synthesizeSpeech(request)) {
@@ -293,13 +246,10 @@ public class PollyService {
     // =========================================================
     // INTERNAL MODEL
     // =========================================================
-
     private record PodcastLine(String speaker, String text) {
-
         static PodcastLine sectionBreak() {
             return new PodcastLine(null, null);
         }
-
         boolean isSectionBreak() {
             return speaker == null;
         }

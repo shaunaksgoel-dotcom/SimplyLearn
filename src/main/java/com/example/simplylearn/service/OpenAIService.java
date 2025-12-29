@@ -9,6 +9,8 @@ import org.springframework.web.reactive.function.client.WebClient;
 import java.util.List;
 import java.util.Map;
 
+import static reactor.netty.http.HttpConnectionLiveness.log;
+
 @Service
 public class OpenAIService {
 
@@ -133,7 +135,9 @@ public class OpenAIService {
     // 🎬 VIDEO SCRIPT (NEW)
     // ======================
     public String createVideoScript(String inputText) {
-
+    System.out.println("The prompt is created!");
+    log.info("MyNameIsShaunak");
+        log.error("MyNameIsShaunak");
         String prompt = """
                 You are an educational video script writer.
                 

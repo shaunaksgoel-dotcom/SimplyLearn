@@ -1,7 +1,9 @@
 package com.example.simplylearn.service;
 
+import com.example.simplylearn.model.ConversionType;
 import com.example.simplylearn.model.FileUpload;
 import com.example.simplylearn.repository.FileUploadRepository;
+
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,6 +38,7 @@ public class ConversionService {
         this.videoService = videoService;
     }
 
+
     @Async
     @Transactional
     public void convert(UUID uploadId) {
@@ -47,14 +50,12 @@ public class ConversionService {
             upload.setStatus("PROCESSING");
             repo.save(upload);
 
-            switch (upload.getConversionType().toLowerCase()) {
-                case "podcast" -> handlePodcast(upload);
-                case "summary" -> handleSummary(upload);
-                case "slideshow" -> handleSlideshow(upload);
-                case "video" -> handleVideo(upload);
-                default -> throw new UnsupportedOperationException(
-                        "Unsupported conversion type: " + upload.getConversionType()
-                );
+
+            switch (upload.getConversionType()) {
+                case PODCAST -> handlePodcast(upload);
+                case SUMMARY -> handleSummary(upload);
+                case SLIDESHOW -> handleSlideshow(upload);
+                case VIDEO -> handleVideo(upload);
             }
 
             upload.setStatus("COMPLETED");
@@ -68,112 +69,86 @@ public class ConversionService {
     }
 
     // ======================
-    // PODCAST
+    // 🎙 PODCAST
     // ======================
     private void handlePodcast(FileUpload upload) throws Exception {
 
         String text = readAllFiles(upload);
+        String script = openAIService.createPodcastScript(text);
 
-        String podcastScript = openAIService.createPodcastScript(text);
+        Path mp3 = storageService.resolveConverted(upload.getId() + ".mp3");
+        pollyService.synthesizePodcastToMp3(script, mp3);
 
-        Path mp3Path = storageService.resolveConverted(
-                upload.getId().toString() + ".mp3"
-        );
-
-        pollyService.synthesizePodcastToMp3(podcastScript, mp3Path);
-
-        upload.setConvertedFilename(mp3Path.getFileName().toString());
+        upload.setConvertedFilename(mp3.getFileName().toString());
     }
 
     // ======================
-    // SUMMARY
+    // 📝 SUMMARY
     // ======================
     private void handleSummary(FileUpload upload) throws Exception {
 
         String text = readAllFiles(upload);
-
         String summary = openAIService.createSummary(text);
 
-        Path outPath = storageService.resolveConverted(
-                upload.getId().toString() + ".txt"
-        );
+        Path out = storageService.resolveConverted(upload.getId() + ".txt");
+        Files.writeString(out, summary);
 
-        Files.writeString(outPath, summary);
-
-        upload.setConvertedFilename(outPath.getFileName().toString());
+        upload.setConvertedFilename(out.getFileName().toString());
     }
 
     // ======================
-    // SLIDESHOW
+    // 📊 SLIDESHOW
     // ======================
     private void handleSlideshow(FileUpload upload) throws Exception {
 
         String text = readAllFiles(upload);
+        String outline = openAIService.createSlideshowOutline(text);
 
-        String slideshowOutline =
-                openAIService.createSlideshowOutline(text);
+        Path pptx = storageService.resolveConverted(upload.getId() + ".pptx");
+        slideshowService.createSlideshow(outline, pptx);
 
-        Path pptxPath = storageService.resolveConverted(
-                upload.getId().toString() + ".pptx"
-        );
-
-        slideshowService.createSlideshow(slideshowOutline, pptxPath);
-
-        upload.setConvertedFilename(pptxPath.getFileName().toString());
+        upload.setConvertedFilename(pptx.getFileName().toString());
     }
 
     // ======================
-    // 🎬 VIDEO
+    // 🎬 VIDEO (FIXED)
     // ======================
     private void handleVideo(FileUpload upload) throws Exception {
 
         String text = readAllFiles(upload);
 
-        // 1️⃣ Create video narration script
-        String videoScript =
-                openAIService.createVideoScript(text);
+        // 1️⃣ Generate structured video script
+        String script = openAIService.createVideoScript(text);
 
-        // 2️⃣ Create slideshow images (scene-based)
-        Path imagesDir =
-                storageService.createTempDirectory(upload.getId().toString());
+        // 2️⃣ Create TEMP directory for scene assets
+        Path imagesDir = Files.createTempDirectory(
+                "video-" + upload.getId()
+        );
 
-        slideshowService.createVideoSlides(videoScript, imagesDir);
+        // 3️⃣ Generate placeholder slides (1 per scene)
+        slideshowService.createVideoSlides(script, imagesDir);
 
-        // 3️⃣ Generate narration audio (ONE generative speaker)
-        Path narrationMp3 =
-                storageService.resolveConverted(upload.getId() + "-narration.mp3");
+        // 4️⃣ Render MP4 (audio + ffmpeg inside VideoService)
+        Path video = storageService.resolveConverted(upload.getId() + ".mp4");
 
-        pollyService.synthesizeVideoNarrationToMp3(videoScript, narrationMp3);
+        videoService.createVideo(script, imagesDir, video);
 
-        // 4️⃣ Stitch into MP4 via FFmpeg
-        Path videoPath =
-                storageService.resolveConverted(upload.getId() + ".mp4");
-
-        videoService.createVideo(videoScript, imagesDir, videoPath);
-
-        upload.setConvertedFilename(videoPath.getFileName().toString());
+        upload.setConvertedFilename(video.getFileName().toString());
     }
 
     // ======================
-    // SHARED FILE READER
+    // 📂 FILE READER
     // ======================
     private String readAllFiles(FileUpload upload) throws Exception {
 
         StringBuilder combined = new StringBuilder();
 
-        String[] files = upload.getStoredFilename().split("\\|");
-
-        for (String filename : files) {
-            Path path = storageService.resolve(filename);
-
-            if (!Files.exists(path)) {
-                throw new IllegalStateException("Missing file: " + filename);
-            }
-
-            combined.append(Files.readString(path))
-                    .append("\n\n");
+        for (String f : upload.getStoredFilename().split("\\|")) {
+            Path p = storageService.resolve(f);
+            combined.append(Files.readString(p)).append("\n\n");
         }
 
         return combined.toString().trim();
     }
+
 }
