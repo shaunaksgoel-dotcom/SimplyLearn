@@ -100,30 +100,30 @@
 
 <body>
 
-<h1>📘 Simply Learn</h1>
-<h2>Turn your school files into podcasts, slideshows, videos, quizzes, summaries, and more! 🚀</h2>
+<h1>Simply Learn</h1>
+<h2>Turn your school files into podcasts, slideshows, videos, quizzes, summaries, and more! </h2>
 
 <div class="container">
 
-    <a href="/new" class="upload-link">➕ Upload New Files</a>
+    <a href="/new" class="upload-link">Upload New Files</a>
 
     <div th:if="${#lists.isEmpty(files)}">
-        <p>No uploads yet — try adding one! 😊</p>
+        <p>No uploads yet try adding one! </p>
     </div>
 
     <div th:each="f : ${files}" class="card">
 
         <div class="filename">
-            📄 <span th:text="${f.originalFilename}"></span>
+            <span th:text="${f.originalFilename}"></span>
         </div>
 
         <div class="status">
-            🔄 Type:
+            Type:
             <span th:text="${f.conversionType}"></span>
         </div>
 
         <div class="status">
-            📌 Status:
+            Status:
             <span th:text="${f.status}"
                   th:classappend="
                     ${f.status == 'COMPLETED'} ? 'done' :
@@ -132,11 +132,11 @@
             </span>
         </div>
 
-        <!-- ✅ DOWNLOAD BUTTON (FIXED) -->
+        <!-- DOWNLOAD BUTTON (FIXED) -->
         <div th:if="${f.status == 'COMPLETED'}">
             <a th:href="@{'/download/' + ${f.id}}"
                class="download-btn">
-                ⬇️ Download
+                Download
             </a>
         </div>
 
