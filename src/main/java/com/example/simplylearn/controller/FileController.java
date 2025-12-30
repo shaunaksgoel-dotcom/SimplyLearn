@@ -4,6 +4,8 @@ import com.example.simplylearn.model.FileUpload;
 import com.example.simplylearn.repository.FileUploadRepository;
 import com.example.simplylearn.service.ConversionService;
 import com.example.simplylearn.service.StorageService;
+
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -18,6 +20,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Controller
 public class FileController {
@@ -67,6 +70,23 @@ public class FileController {
         return "redirect:/";
     }
 
+    @PostMapping({"/quiz/{id}"})
+    public String quizPage(@PathVariable UUID id, RedirectAttributes attributes) throws Exception {
+    System.out.println("in quiz page controller");
+        FileUpload upload = repo.findById(id).orElseThrow();
+
+        Path quizFile = storageService.resolveConverted(
+                upload.getConvertedFilename()
+        );
+
+        String quizData = Files.readString(quizFile);
+
+//        // Inject JSON directly into page
+        attributes.addAttribute("quizData",quizData);
+        return "redirect:/quiz";
+    }
+
+
     @GetMapping({"/download/{id}"})
     public ResponseEntity<FileSystemResource> download(@PathVariable UUID id) {
         String filename, contentType;
@@ -84,6 +104,10 @@ public class FileController {
             case "summary":
                 filename = "summary.txt";
                 contentType = "text/plain";
+                break;
+            case "quiz":
+                filename = "quiz.json";
+                contentType = "application/json";
                 break;
             default:
                 filename = upload.getConvertedFilename();

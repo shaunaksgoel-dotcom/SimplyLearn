@@ -50,6 +50,9 @@ public class ConversionService {
                 case "slideshow":
                     handleSlideshow(upload);
                     break;
+                case "quiz":
+                    handleQuiz(upload);
+                    break;
                 default:
                     throw new UnsupportedOperationException("Unsupported conversion type: " + upload
                             .getConversionType());
@@ -88,6 +91,16 @@ public class ConversionService {
                 .getId().toString() + ".pptx");
         this.slideshowService.createSlideshow(slideshowOutline, pptxPath);
         upload.setConvertedFilename(pptxPath.getFileName().toString());
+    }
+    private void handleQuiz(FileUpload upload) throws Exception{
+        String text = readAllFiles(upload);
+        String quizContent = this.openAIService.createQuiz(text);
+
+        // This code is writing the json into a file and saving the filename in the db
+        Path outPath = this.storageService.resolveConverted(upload
+                .getId().toString() + ".txt");
+        Files.writeString(outPath, quizContent, new java.nio.file.OpenOption[0]);
+        upload.setConvertedFilename(outPath.getFileName().toString());
     }
 
     private String readAllFiles(FileUpload upload) throws Exception {

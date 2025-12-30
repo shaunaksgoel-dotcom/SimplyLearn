@@ -30,6 +30,10 @@ public class OpenAIService {
         String prompt = "You are a teacher creating a slideshow for students.\n\nConvert the study material below into a slideshow outline.\n\nSTRICT RULES:\n- Each slide must have a short, clear title\n- Bullet points must be short and student-friendly\n- No paragraphs\n- No extra commentary\n- Do not repeat ideas across slides\n\nLENIENT RULES:\n- Have around 4 bullets per slide (strictly between 3 and 5)\n- Create enough slides to cover all key concepts (aim for 5slides, but more or fewer is acceptable)\n- For each slide, also provide a short visual description suitable for an illustration.\n\nREQUIRED FORMAT (VERY IMPORTANT FOLLOW EXACTLY):\n\nSlide 1: Title here\n- Bullet 1\n- Bullet 2\n- Bullet 3\n- Bullet 4\nImage: short description of an illustration\n\nSlide 2: Title here\n- Bullet 1\n- Bullet 2\n- Bullet 3\n- Bullet 4\nImage: short description of an illustration\n\nStudy material:\n\n\n\n" + inputText;
         return runChat(prompt);
     }
+    public String createQuiz(String inputText){
+        String prompt = "You are a quiz master for students/\n\nGenerate a 5-question multiple-choice quiz based on the study material below.\n\nSTRICT RULES:\n- Each question must have 4 answer choices labeled A, B, C, and D.\n- Only one answer choice is correct per question.\n- Do not provide explanations for the answers.\n- Do not include any commentary or additional text.\n\nREQUIRED FORMAT (VERY IMPORTANT FOLLOW EXACTLY):\n\nQuestion 1: [Question text]\nA. [Answer choice A]\nB. [Answer choice B]\nC. [Answer choice C]\nD. [Answer choice D]\n\nQuestion 2: [Question text]\nA. [Answer choice A]\nB. [Answer choice B]\nC. [Answer choice C]\nD. [Answer choice D]\n\nStudy material:\n\n\n\n IMPORTANT: Give me ouput in a structured JSON format" + inputText;
+        return runChat(prompt);
+    }
 
     private String runChat(String prompt) {
         Map<String, Object> body = Map.of("model", "gpt-4o-mini", "messages",

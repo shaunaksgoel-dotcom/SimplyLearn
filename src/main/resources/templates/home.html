@@ -2,7 +2,7 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Simply Learn</title>
+    <title>  Simply Learn </title>
 
     <style>
         body {
@@ -100,8 +100,8 @@
 
 <body>
 
-<h1>Simply Learn</h1>
-<h2>Turn your school files into podcasts, slideshows, videos, quizzes, summaries, and more! </h2>
+<h1> 📘 Simply Learn</h1>
+<h2>Turn your school files into podcasts, slideshows, videos, quizzes, summaries, and more! 🚀 </h2>
 
 <div class="container">
 
@@ -133,15 +133,22 @@
         </div>
 
         <!-- DOWNLOAD BUTTON (FIXED) -->
-        <div th:if="${f.status == 'COMPLETED'}">
+        <div th:if="${f.status == 'COMPLETED' and f.getConversionType() != 'quiz'}">
             <a th:href="@{'/download/' + ${f.id}}"
                class="download-btn">
                 Download
             </a>
         </div>
-
+        <div th:if="${f.status == 'COMPLETED' and f.getConversionType() == 'quiz'}">
+            <a th:href="@{'/quiz/' + ${f.id}}"
+               class="download-btn">
+                🧠 Take Quiz
+            </a>
+        </div>
     </div>
 </div>
+
+
 
 </body>
 </html>

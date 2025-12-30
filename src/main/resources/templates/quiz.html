@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Quiz</title>
+    <style>
+        :root{
+            --bg:#f4f7fb;
+            --card:#ffffff;
+            --text:#1f2937;
+            --muted:#6b7280;
+            --brand:#2563eb;
+            --ok:#16a34a;
+            --bad:#dc2626;
+            --shadow:0 10px 25px rgba(0,0,0,0.08);
+            --radius:14px;
+        }
+        body{
+            margin:0;
+            font-family: "Segoe UI", Arial, sans-serif;
+            background:var(--bg);
+            color:var(--text);
+            display:flex;
+            justify-content:center;
+            padding:28px 14px;
+        }
+        .wrap{
+            width:100%;
+            max-width:900px;
+        }
+        header{
+            text-align:center;
+            margin-bottom:18px;
+        }
+        h1{
+            margin:0 0 6px 0;
+            font-size:2.2rem;
+            color:var(--brand);
+        }
+        .sub{
+            margin:0;
+            color:var(--muted);
+            font-size:1rem;
+        }
+        .topbar{
+            display:flex;
+            gap:10px;
+            justify-content:space-between;
+            align-items:center;
+            margin:18px 0;
+            flex-wrap:wrap;
+        }
+        .pill{
+            background:rgba(37,99,235,0.10);
+            color:var(--brand);
+            padding:8px 12px;
+            border-radius:999px;
+            font-weight:600;
+            font-size:0.95rem;
+        }
+        .btn{
+            border:none;
+            cursor:pointer;
+            border-radius:10px;
+            padding:10px 14px;
+            font-weight:700;
+            font-size:0.95rem;
+        }
+        .btn-primary{
+            background:var(--brand);
+            color:white;
+        }
+        .btn-ghost{
+            background:#eef2ff;
+            color:#1e3a8a;
+        }
+        .card{
+            background:var(--card);
+            box-shadow:var(--shadow);
+            border-radius:var(--radius);
+            padding:18px;
+            margin:14px 0;
+        }
+        .qhead{
+            display:flex;
+            justify-content:space-between;
+            gap:10px;
+            align-items:flex-start;
+        }
+        .qtitle{
+            margin:0;
+            font-size:1.1rem;
+            line-height:1.35;
+            font-weight:800;
+        }
+        .tag{
+            font-size:0.85rem;
+            color:var(--muted);
+            white-space:nowrap;
+            margin-top:2px;
+        }
+        .choices{
+            margin-top:12px;
+            display:grid;
+            gap:10px;
+        }
+        .choice{
+            border:2px solid #e5e7eb;
+            border-radius:12px;
+            padding:10px 12px;
+            display:flex;
+            gap:10px;
+            align-items:flex-start;
+            cursor:pointer;
+            user-select:none;
+            transition:0.15s ease;
+            background:#fff;
+        }
+        .choice:hover{
+            border-color:#c7d2fe;
+            background:#f8fafc;
+        }
+        .choice input{
+            margin-top:3px;
+            transform:scale(1.15);
+            cursor:pointer;
+        }
+        .choice .label{
+            font-weight:800;
+            width:22px;
+            color:#111827;
+        }
+        .choice .text{
+            flex:1;
+            color:#111827;
+        }
+
+        /* feedback states */
+        .choice.correct{
+            border-color:rgba(22,163,74,0.7);
+            background:rgba(22,163,74,0.08);
+        }
+        .choice.wrong{
+            border-color:rgba(220,38,38,0.7);
+            background:rgba(220,38,38,0.07);
+        }
+        .choice.disabled{
+            cursor:not-allowed;
+            opacity:0.95;
+        }
+
+        .actions{
+            display:flex;
+            gap:10px;
+            flex-wrap:wrap;
+            margin-top:16px;
+        }
+        .result{
+            margin-top:14px;
+            padding:12px 14px;
+            border-radius:12px;
+            background:#f3f4f6;
+            color:#111827;
+            font-weight:700;
+            display:none;
+        }
+        .result.ok{ background:rgba(22,163,74,0.12); color:#065f46; }
+        .result.bad{ background:rgba(220,38,38,0.10); color:#7f1d1d; }
+
+        .footer{
+            text-align:center;
+            margin-top:18px;
+            color:var(--muted);
+            font-size:0.95rem;
+        }
+
+        @media (max-width:520px){
+            h1{ font-size:1.75rem; }
+            .qhead{ flex-direction:column; align-items:flex-start; }
+            .tag{ margin-top:0; }
+        }
+    </style>
+</head>
+<body>
+<div class="wrap">
+    <header>
+        <h1> ✅ Quiz ❌</h1>
+        <p class="sub">Answer all questions. Click <b>Check Answers</b> to see your score.</p>
+    </header>
+
+    <div class="topbar">
+        <div class="pill" id="progressPill">0 / 5 answered</div>
+        <div class="actions">
+            <button class="btn btn-ghost" id="resetBtn" type="button">↩️ Restart</button>
+            <button class="btn btn-primary" id="checkBtn" type="button">✅ Check Answers</button>
+        </div>
+    </div>
+
+    <div id="quizRoot"></div>
+
+    <div class="card result" id="scoreBox"></div>
+
+    <div class="footer">Made for Simply Learn ✨</div>
+</div>
+<!--<script>-->
+<!--    const quizDataJson = JSON.stringify(quizData);-->
+<!--</script>-->
+<div>
+    <p> Now print the stringified version!</p>
+    <h2> <p>Quiz Data: <span th:text="${quizData}"></span></p> </h2>
+</div>
+
+<script>
+
+    // ======= App State =======
+    //const quizData = /*[[${quizData}]]*/ {};
+    const quizRoot = document.getElementById("quizRoot");
+    const progressPill = document.getElementById("progressPill");
+    const scoreBox = document.getElementById("scoreBox");
+    const checkBtn = document.getElementById("checkBtn");
+    const resetBtn = document.getElementById("resetBtn");
+
+    // userAnswers[i] = "A" | "B" | "C" | "D" | null
+    let userAnswers = new Array(quizData.quiz.length).fill(null);
+    let checked = false;
+
+    function render() {
+        quizRoot.innerHTML = "";
+        scoreBox.style.display = "none";
+        scoreBox.className = "card result";
+
+        quizData.quiz.forEach((q, idx) => {
+            const card = document.createElement("div");
+            card.className = "card";
+
+            const head = document.createElement("div");
+            head.className = "qhead";
+
+            const title = document.createElement("p");
+            title.className = "qtitle";
+            title.textContent = `Question ${idx + 1}: ${q.question}`;
+
+            const tag = document.createElement("div");
+            tag.className = "tag";
+            tag.textContent = userAnswers[idx] ? `Selected: ${userAnswers[idx]}` : "Not answered";
+
+            head.appendChild(title);
+            head.appendChild(tag);
+            card.appendChild(head);
+
+            const choices = document.createElement("div");
+            choices.className = "choices";
+
+            ["A","B","C","D"].forEach(letter => {
+                const row = document.createElement("label");
+                row.className = "choice";
+
+                if (checked) {
+                    row.classList.add("disabled");
+                    if (letter === q.correctAnswer) row.classList.add("correct");
+                    if (userAnswers[idx] === letter && letter !== q.correctAnswer) row.classList.add("wrong");
+                }
+
+                const radio = document.createElement("input");
+                radio.type = "radio";
+                radio.name = `q_${idx}`;
+                radio.value = letter;
+                radio.checked = userAnswers[idx] === letter;
+                radio.disabled = checked;
+
+                radio.addEventListener("change", () => {
+                    userAnswers[idx] = letter;
+                    updateProgress();
+                    // update only the tag without re-rendering everything
+                    tag.textContent = `Selected: ${letter}`;
+                });
+
+                const lab = document.createElement("div");
+                lab.className = "label";
+                lab.textContent = letter + ".";
+
+                const txt = document.createElement("div");
+                txt.className = "text";
+                txt.textContent = q.choices[letter];
+
+                row.appendChild(radio);
+                row.appendChild(lab);
+                row.appendChild(txt);
+
+                choices.appendChild(row);
+            });
+
+            card.appendChild(choices);
+            quizRoot.appendChild(card);
+        });
+
+        updateProgress();
+    }
+
+    function updateProgress() {
+        const answered = userAnswers.filter(x => x !== null).length;
+        progressPill.textContent = `${answered} / ${quizData.quiz.length} answered`;
+    }
+
+    function checkAnswers() {
+        checked = true;
+
+        let correct = 0;
+        quizData.quiz.forEach((q, i) => {
+            if (userAnswers[i] === q.correctAnswer) correct++;
+        });
+
+        const total = quizData.quiz.length;
+        const pct = Math.round((correct / total) * 100);
+
+        scoreBox.style.display = "block";
+        scoreBox.textContent = `Score: ${correct} / ${total} (${pct}%)`;
+
+        // style score box
+        if (pct >= 80) scoreBox.classList.add("ok");
+        else scoreBox.classList.add("bad");
+
+        // re-render to show green/red highlighting
+        render();
+        // keep score visible after render()
+        scoreBox.style.display = "block";
+        scoreBox.textContent = `Score: ${correct} / ${total} (${pct}%)`;
+        scoreBox.className = `card result ${pct >= 80 ? "ok" : "bad"}`;
+    }
+
+    function resetQuiz() {
+        userAnswers = new Array(quizData.quiz.length).fill(null);
+        checked = false;
+        render();
+    }
+
+    checkBtn.addEventListener("click", () => {
+        // Optional: require all answered before checking
+        const unanswered = userAnswers.some(x => x === null);
+        if (unanswered) {
+            scoreBox.style.display = "block";
+            scoreBox.textContent = "Please answer all questions before checking.";
+            scoreBox.className = "card result bad";
+            return;
+        }
+        checkAnswers();
+    });
+
+    resetBtn.addEventListener("click", resetQuiz);
+
+    // initial render
+    render();
+</script>
+</body>
+</html>
