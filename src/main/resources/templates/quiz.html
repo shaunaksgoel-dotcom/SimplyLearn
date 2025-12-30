@@ -203,154 +203,150 @@
 
     <div class="footer">Made for Simply Learn ✨</div>
 </div>
-<!--<script>-->
-<!--    const quizDataJson = JSON.stringify(quizData);-->
-<!--</script>-->
 <div>
     <p> Now print the stringified version!</p>
     <h2> <p>Quiz Data: <span th:text="${quizData}"></span></p> </h2>
 </div>
 
-<script>
+<!--<script>-->
 
-    // ======= App State =======
-    //const quizData = /*[[${quizData}]]*/ {};
-    const quizRoot = document.getElementById("quizRoot");
-    const progressPill = document.getElementById("progressPill");
-    const scoreBox = document.getElementById("scoreBox");
-    const checkBtn = document.getElementById("checkBtn");
-    const resetBtn = document.getElementById("resetBtn");
+<!--    // ======= App State =======-->
+<!--    const quizRoot = document.getElementById("quizRoot");-->
+<!--    const progressPill = document.getElementById("progressPill");-->
+<!--    const scoreBox = document.getElementById("scoreBox");-->
+<!--    const checkBtn = document.getElementById("checkBtn");-->
+<!--    const resetBtn = document.getElementById("resetBtn");-->
 
-    // userAnswers[i] = "A" | "B" | "C" | "D" | null
-    let userAnswers = new Array(quizData.quiz.length).fill(null);
-    let checked = false;
+<!--    // userAnswers[i] = "A" | "B" | "C" | "D" | null-->
+<!--    let userAnswers = new Array(quizData.quiz.length).fill(null);-->
+<!--    let checked = false;-->
 
-    function render() {
-        quizRoot.innerHTML = "";
-        scoreBox.style.display = "none";
-        scoreBox.className = "card result";
+<!--    function render() {-->
+<!--        quizRoot.innerHTML = "";-->
+<!--        scoreBox.style.display = "none";-->
+<!--        scoreBox.className = "card result";-->
 
-        quizData.quiz.forEach((q, idx) => {
-            const card = document.createElement("div");
-            card.className = "card";
+<!--        quizData.quiz.forEach((q, idx) => {-->
+<!--            const card = document.createElement("div");-->
+<!--            card.className = "card";-->
 
-            const head = document.createElement("div");
-            head.className = "qhead";
+<!--            const head = document.createElement("div");-->
+<!--            head.className = "qhead";-->
 
-            const title = document.createElement("p");
-            title.className = "qtitle";
-            title.textContent = `Question ${idx + 1}: ${q.question}`;
+<!--            const title = document.createElement("p");-->
+<!--            title.className = "qtitle";-->
+<!--            title.textContent = `Question ${idx + 1}: ${q.question}`;-->
 
-            const tag = document.createElement("div");
-            tag.className = "tag";
-            tag.textContent = userAnswers[idx] ? `Selected: ${userAnswers[idx]}` : "Not answered";
+<!--            const tag = document.createElement("div");-->
+<!--            tag.className = "tag";-->
+<!--            tag.textContent = userAnswers[idx] ? `Selected: ${userAnswers[idx]}` : "Not answered";-->
 
-            head.appendChild(title);
-            head.appendChild(tag);
-            card.appendChild(head);
+<!--            head.appendChild(title);-->
+<!--            head.appendChild(tag);-->
+<!--            card.appendChild(head);-->
 
-            const choices = document.createElement("div");
-            choices.className = "choices";
+<!--            const choices = document.createElement("div");-->
+<!--            choices.className = "choices";-->
 
-            ["A","B","C","D"].forEach(letter => {
-                const row = document.createElement("label");
-                row.className = "choice";
+<!--            ["A","B","C","D"].forEach(letter => {-->
+<!--                const row = document.createElement("label");-->
+<!--                row.className = "choice";-->
 
-                if (checked) {
-                    row.classList.add("disabled");
-                    if (letter === q.correctAnswer) row.classList.add("correct");
-                    if (userAnswers[idx] === letter && letter !== q.correctAnswer) row.classList.add("wrong");
-                }
+<!--                if (checked) {-->
+<!--                    row.classList.add("disabled");-->
+<!--                    if (letter === q.correctAnswer) row.classList.add("correct");-->
+<!--                    if (userAnswers[idx] === letter && letter !== q.correctAnswer) row.classList.add("wrong");-->
+<!--                }-->
 
-                const radio = document.createElement("input");
-                radio.type = "radio";
-                radio.name = `q_${idx}`;
-                radio.value = letter;
-                radio.checked = userAnswers[idx] === letter;
-                radio.disabled = checked;
+<!--                const radio = document.createElement("input");-->
+<!--                radio.type = "radio";-->
+<!--                radio.name = `q_${idx}`;-->
+<!--                radio.value = letter;-->
+<!--                radio.checked = userAnswers[idx] === letter;-->
+<!--                radio.disabled = checked;-->
 
-                radio.addEventListener("change", () => {
-                    userAnswers[idx] = letter;
-                    updateProgress();
-                    // update only the tag without re-rendering everything
-                    tag.textContent = `Selected: ${letter}`;
-                });
+<!--                radio.addEventListener("change", () => {-->
+<!--                    userAnswers[idx] = letter;-->
+<!--                    updateProgress();-->
+<!--                    // update only the tag without re-rendering everything-->
+<!--                    tag.textContent = `Selected: ${letter}`;-->
+<!--                });-->
 
-                const lab = document.createElement("div");
-                lab.className = "label";
-                lab.textContent = letter + ".";
+<!--                const lab = document.createElement("div");-->
+<!--                lab.className = "label";-->
+<!--                lab.textContent = letter + ".";-->
 
-                const txt = document.createElement("div");
-                txt.className = "text";
-                txt.textContent = q.choices[letter];
+<!--                const txt = document.createElement("div");-->
+<!--                txt.className = "text";-->
+<!--                txt.textContent = q.choices[letter];-->
 
-                row.appendChild(radio);
-                row.appendChild(lab);
-                row.appendChild(txt);
+<!--                row.appendChild(radio);-->
+<!--                row.appendChild(lab);-->
+<!--                row.appendChild(txt);-->
 
-                choices.appendChild(row);
-            });
+<!--                choices.appendChild(row);-->
+<!--            });-->
 
-            card.appendChild(choices);
-            quizRoot.appendChild(card);
-        });
+<!--            card.appendChild(choices);-->
+<!--            quizRoot.appendChild(card);-->
+<!--        });-->
 
-        updateProgress();
-    }
+<!--        updateProgress();-->
+<!--    }-->
 
-    function updateProgress() {
-        const answered = userAnswers.filter(x => x !== null).length;
-        progressPill.textContent = `${answered} / ${quizData.quiz.length} answered`;
-    }
+<!--    function updateProgress() {-->
+<!--        const answered = userAnswers.filter(x => x !== null).length;-->
+<!--        progressPill.textContent = `${answered} / ${quizData.quiz.length} answered`;-->
+<!--    }-->
 
-    function checkAnswers() {
-        checked = true;
+<!--    function checkAnswers() {-->
+<!--        checked = true;-->
 
-        let correct = 0;
-        quizData.quiz.forEach((q, i) => {
-            if (userAnswers[i] === q.correctAnswer) correct++;
-        });
+<!--        let correct = 0;-->
+<!--        quizData.quiz.forEach((q, i) => {-->
+<!--            if (userAnswers[i] === q.correctAnswer) correct++;-->
+<!--        });-->
 
-        const total = quizData.quiz.length;
-        const pct = Math.round((correct / total) * 100);
+<!--        const total = quizData.quiz.length;-->
+<!--        const pct = Math.round((correct / total) * 100);-->
 
-        scoreBox.style.display = "block";
-        scoreBox.textContent = `Score: ${correct} / ${total} (${pct}%)`;
+<!--        scoreBox.style.display = "block";-->
+<!--        scoreBox.textContent = `Score: ${correct} / ${total} (${pct}%)`;-->
 
-        // style score box
-        if (pct >= 80) scoreBox.classList.add("ok");
-        else scoreBox.classList.add("bad");
+<!--        // style score box-->
+<!--        if (pct >= 80) scoreBox.classList.add("ok");-->
+<!--        else scoreBox.classList.add("bad");-->
 
-        // re-render to show green/red highlighting
-        render();
-        // keep score visible after render()
-        scoreBox.style.display = "block";
-        scoreBox.textContent = `Score: ${correct} / ${total} (${pct}%)`;
-        scoreBox.className = `card result ${pct >= 80 ? "ok" : "bad"}`;
-    }
+<!--        // re-render to show green/red highlighting-->
+<!--        render();-->
+<!--        // keep score visible after render()-->
+<!--        scoreBox.style.display = "block";-->
+<!--        scoreBox.textContent = `Score: ${correct} / ${total} (${pct}%)`;-->
+<!--        scoreBox.className = `card result ${pct >= 80 ? "ok" : "bad"}`;-->
+<!--    }-->
 
-    function resetQuiz() {
-        userAnswers = new Array(quizData.quiz.length).fill(null);
-        checked = false;
-        render();
-    }
+<!--    function resetQuiz() {-->
+<!--        userAnswers = new Array(quizData.quiz.length).fill(null);-->
+<!--        checked = false;-->
+<!--        render();-->
+<!--    }-->
 
-    checkBtn.addEventListener("click", () => {
-        // Optional: require all answered before checking
-        const unanswered = userAnswers.some(x => x === null);
-        if (unanswered) {
-            scoreBox.style.display = "block";
-            scoreBox.textContent = "Please answer all questions before checking.";
-            scoreBox.className = "card result bad";
-            return;
-        }
-        checkAnswers();
-    });
+<!--    checkBtn.addEventListener("click", () => {-->
+<!--        // Optional: require all answered before checking-->
+<!--        const unanswered = userAnswers.some(x => x === null);-->
+<!--        if (unanswered) {-->
+<!--            scoreBox.style.display = "block";-->
+<!--            scoreBox.textContent = "Please answer all questions before checking.";-->
+<!--            scoreBox.className = "card result bad";-->
+<!--            return;-->
+<!--        }-->
+<!--        checkAnswers();-->
+<!--    });-->
 
-    resetBtn.addEventListener("click", resetQuiz);
+<!--    resetBtn.addEventListener("click", resetQuiz);-->
 
-    // initial render
-    render();
-</script>
+<!--    // initial render-->
+<!--    render();-->
+<!--</script>-->
 </body>
 </html>

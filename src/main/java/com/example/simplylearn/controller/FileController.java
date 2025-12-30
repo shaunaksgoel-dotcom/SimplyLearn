@@ -70,8 +70,8 @@ public class FileController {
         return "redirect:/";
     }
 
-    @PostMapping({"/quiz/{id}"})
-    public String quizPage(@PathVariable UUID id, RedirectAttributes attributes) throws Exception {
+    @GetMapping({"/quiz/{id}"})
+    public String quizPage(@PathVariable UUID id, Model attributes) throws Exception {
     System.out.println("in quiz page controller");
         FileUpload upload = repo.findById(id).orElseThrow();
 
@@ -83,7 +83,7 @@ public class FileController {
 
 //        // Inject JSON directly into page
         attributes.addAttribute("quizData",quizData);
-        return "redirect:/quiz";
+        return "quiz";
     }
 
 
