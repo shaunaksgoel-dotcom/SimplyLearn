@@ -72,7 +72,6 @@ public class FileController {
 
     @GetMapping({"/quiz/{id}"})
     public String quizPage(@PathVariable UUID id, Model attributes) throws Exception {
-    System.out.println("in quiz page controller");
         FileUpload upload = repo.findById(id).orElseThrow();
 
         Path quizFile = storageService.resolveConverted(
@@ -80,6 +79,8 @@ public class FileController {
         );
 
         String quizData = Files.readString(quizFile);
+        quizData = quizData.replaceAll("(?s)```(json)?", "").trim();
+
 
 //        // Inject JSON directly into page
         attributes.addAttribute("quizData",quizData);

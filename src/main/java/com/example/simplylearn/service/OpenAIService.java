@@ -31,8 +31,35 @@ public class OpenAIService {
         return runChat(prompt);
     }
     public String createQuiz(String inputText){
-        String prompt = "You are a quiz master for students/\n\nGenerate a 5-question multiple-choice quiz based on the study material below.\n\nSTRICT RULES:\n- Each question must have 4 answer choices labeled A, B, C, and D.\n- Only one answer choice is correct per question.\n- Do not provide explanations for the answers.\n- Do not include any commentary or additional text.\n\nREQUIRED FORMAT (VERY IMPORTANT FOLLOW EXACTLY):\n\nQuestion 1: [Question text]\nA. [Answer choice A]\nB. [Answer choice B]\nC. [Answer choice C]\nD. [Answer choice D]\n\nQuestion 2: [Question text]\nA. [Answer choice A]\nB. [Answer choice B]\nC. [Answer choice C]\nD. [Answer choice D]\n\nStudy material:\n\n\n\n IMPORTANT: Give me ouput in a structured JSON format" + inputText;
-        return runChat(prompt);
+        String prompt = """
+You are a helpful AI that creates educational quizzes.
+
+Generate multiple-choice quiz strictly based on the study material below.
+Amount of questions should depend on the length of the material, but should always be between 5 and 20 questions.
+MUST BE IN JSON FORMAT!!!
+Each question must:
+- Have the exact JSON keys: "question", "A", "B", "C", "D", and "correctAnswer".
+- "correctAnswer" must contain the correct choice letter only ("A", "B", "C", or "D").
+- Contain no explanations, chat text, or commentary — only pure JSON.
+- JSON must be valid, well-formatted, and start with { and end with }.
+
+Expected output JSON structure:
+{
+  "quiz": [
+    {
+      "question": "Question text",
+      "A": "Choice A text",
+      "B": "Choice B text",
+      "C": "Choice C text",
+      "D": "Choice D text",
+      "correctAnswer": "C"
+    },
+    ...
+  ]
+}
+
+Study material:
+""" + inputText;        return runChat(prompt);
     }
 
     private String runChat(String prompt) {

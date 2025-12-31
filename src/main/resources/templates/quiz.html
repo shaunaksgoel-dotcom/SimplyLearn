@@ -190,7 +190,7 @@
     </header>
 
     <div class="topbar">
-        <div class="pill" id="progressPill">0 / 5 answered</div>
+        <div class="pill" id="progressPill">0 / ${quizData.quiz.length} answered</div>
         <div class="actions">
             <button class="btn btn-ghost" id="resetBtn" type="button">↩️ Restart</button>
             <button class="btn btn-primary" id="checkBtn" type="button">✅ Check Answers</button>
@@ -203,12 +203,153 @@
 
     <div class="footer">Made for Simply Learn ✨</div>
 </div>
-<div>
-    <p> Now print the stringified version!</p>
-    <h2> <p>Quiz Data: <span th:text="${quizData}"></span></p> </h2>
-</div>
+<!--<div>-->
+<!--    <p> Now print the stringified version!</p>-->
+<!--    <h2> <p>Quiz Data: <span th:text="${quizData}"></span></p> </h2>-->
+<!--</div>-->
+<script th:inline="javascript">
+    /*<![CDATA[*/
+    // Parse the JSON string passed from the controller
+    let quizData = /*[[${quizData}]]*/ {};
+    quizData = JSON.parse(quizData);
 
-<!--<script>-->
+    console.log("quizData object:", quizData);
+    console.log(quizData);
+    const quizRoot = document.getElementById("quizRoot");
+    const progressPill = document.getElementById("progressPill");
+    const scoreBox = document.getElementById("scoreBox");
+    const checkBtn = document.getElementById("checkBtn");
+    const resetBtn = document.getElementById("resetBtn");
+
+    // app state
+    let userAnswers = new Array(quizData.quiz.length).fill(null);
+    let checked = false;
+
+    function render() {
+        quizRoot.innerHTML = "";
+        scoreBox.style.display = "none";
+        scoreBox.className = "card result";
+
+        quizData.quiz.forEach((q, idx) => {
+            const card = document.createElement("div");
+            card.className = "card";
+
+            const head = document.createElement("div");
+            head.className = "qhead";
+
+            const title = document.createElement("p");
+            title.className = "qtitle";
+            title.textContent = `Question ${idx + 1}: ${q.question}`;
+
+            const tag = document.createElement("div");
+            tag.className = "tag";
+            tag.textContent = userAnswers[idx] ? `Selected: ${userAnswers[idx]}` : "Not answered";
+
+            head.appendChild(title);
+            head.appendChild(tag);
+            card.appendChild(head);
+
+            const choices = document.createElement("div");
+            choices.className = "choices";
+
+            ["A","B","C","D"].forEach(letter => {
+                const row = document.createElement("label");
+                row.className = "choice";
+
+                // highlight logic after checking answers
+                if (checked) {
+                    row.classList.add("disabled");
+                    if (letter === q.correctAnswer) row.classList.add("correct");
+                    if (userAnswers[idx] === letter && letter !== q.correctAnswer)
+                        row.classList.add("wrong");
+                }
+
+                const radio = document.createElement("input");
+                radio.type = "radio";
+                radio.name = `q_${idx}`;
+                radio.value = letter;
+                radio.checked = userAnswers[idx] === letter;
+                radio.disabled = checked;
+
+                radio.addEventListener("change", () => {
+                    userAnswers[idx] = letter;
+                    tag.textContent = `Selected: ${letter}`;
+                    updateProgress();
+                });
+
+                const lab = document.createElement("div");
+                lab.className = "label";
+                lab.textContent = letter + ".";
+
+                const txt = document.createElement("div");
+                txt.className = "text";
+                txt.textContent = q[letter];
+
+                row.appendChild(radio);
+                row.appendChild(lab);
+                row.appendChild(txt);
+                choices.appendChild(row);
+            });
+
+            card.appendChild(choices);
+            quizRoot.appendChild(card);
+        });
+
+        updateProgress();
+    }
+
+    function updateProgress() {
+        const answered = userAnswers.filter(x => x !== null).length;
+        progressPill.textContent = `${answered} / ${quizData.quiz.length} answered`;
+    }
+
+    function checkAnswers() {
+        checked = true;
+        let correct = 0;
+
+        quizData.quiz.forEach((q, i) => {
+            if (userAnswers[i] === q.correctAnswer) correct++;
+        });
+
+        const total = quizData.quiz.length;
+        const pct = Math.round((correct / total) * 100);
+
+        scoreBox.style.display = "block";
+        scoreBox.textContent = `Score: ${correct} / ${total} (${pct}%)`;
+        scoreBox.className = `card result ${pct >= 80 ? "ok" : "bad"}`;
+
+        // re-render to show green/red highlights
+        render();
+        // keep score visible after render
+        scoreBox.style.display = "block";
+        scoreBox.textContent = `Score: ${correct} / ${total} (${pct}%)`;
+        scoreBox.className = `card result ${pct >= 80 ? "ok" : "bad"}`;
+    }
+
+    function resetQuiz() {
+        userAnswers = new Array(quizData.quiz.length).fill(null);
+        checked = false;
+        render();
+    }
+
+    checkBtn.addEventListener("click", () => {
+        const unanswered = userAnswers.some(ans => ans === null);
+        if (unanswered) {
+            scoreBox.style.display = "block";
+            scoreBox.textContent = "Please answer all questions before checking.";
+            scoreBox.className = "card result bad";
+            return;
+        }
+        checkAnswers();
+    });
+
+    resetBtn.addEventListener("click", resetQuiz);
+
+    render();
+    /*]]>*/
+</script>
+
+
 
 <!--    // ======= App State =======-->
 <!--    const quizRoot = document.getElementById("quizRoot");-->
