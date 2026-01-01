@@ -22,17 +22,10 @@ public class PollyService {
     // ======================
     private static final List<VoiceId> PODCAST_GENERATIVE_VOICES = List.of(
             VoiceId.MATTHEW,
-            VoiceId.RUTH,
+            VoiceId.DANIELLE,
             VoiceId.JOANNA
     );
 
-    // ======================
-    // 🎬 VIDEO VOICES (1 speaker per video)
-    // ======================
-    private static final List<VoiceId> VIDEO_GENERATIVE_VOICES = List.of(
-            VoiceId.MATTHEW,
-            VoiceId.DANIELLE
-    );
 
     private final Random random = new Random();
     private final PollyClient polly;
@@ -141,127 +134,7 @@ public class PollyService {
         }
     }
 
-//    /**
-//     * Single-speaker narration (used for VIDEO)
-//     * One randomized generative voice for the entire narration
-//     */
-//    public void synthesizeSingleSpeakerPodcast(String script, Path outputPath) throws Exception {
-//
-//        // 🎲 Pick ONE voice for the whole video
-//        List<VoiceId> videoVoices = List.of(
-//                VoiceId.MATTHEW,
-//                VoiceId.DANIELLE
-//        );
-//
-//        VoiceId chosenVoice =
-//                videoVoices.get(new Random().nextInt(videoVoices.size()));
-//
-//        try (OutputStream outputStream = Files.newOutputStream(outputPath)) {
-//
-//            for (String raw : script.split("\\r?\\n")) {
-//
-//                String line = raw.trim();
-//                if (line.isEmpty()) continue;
-//
-//                if (line.equals("[[SECTION_BREAK]]")) {
-//                    writePause(outputStream, 900);
-//                    continue;
-//                }
-//
-//                String ssml = buildSsml(line);
-//
-//                SynthesizeSpeechRequest request = SynthesizeSpeechRequest.builder()
-//                        .engine(Engine.GENERATIVE)
-//                        .voiceId(chosenVoice)
-//                        .outputFormat(OutputFormat.MP3)
-//                        .textType(TextType.SSML)
-//                        .text(ssml)
-//                        .build();
-//
-//                try (ResponseInputStream<SynthesizeSpeechResponse> audio =
-//                             polly.synthesizeSpeech(request)) {
-//
-//                    audio.transferTo(outputStream);
-//                }
-//
-//                // Natural pause between lines
-//                writePause(outputStream, 300);
-//            }
-//        }
-//    }
-//
-//    // =========================================================
-//    // 🎬 VIDEO (NEW — ONE SPEAKER, RANDOMIZED ONCE)
-//    // =========================================================
-//
-//    /**
-//     * Called by ConversionService for VIDEO
-//     * One generative speaker per entire video
-//     */
-//    public void synthesizeVideoNarrationToMp3(String script, Path outputPath) throws Exception {
-//
-//        // 🎲 Pick ONE voice per video
-//        VoiceId voice = VIDEO_GENERATIVE_VOICES.get(
-//                random.nextInt(VIDEO_GENERATIVE_VOICES.size())
-//        );
-//
-//        List<String> chunks = splitIntoChunks(script);
-//
-//        try (OutputStream outputStream = Files.newOutputStream(outputPath)) {
-//
-//            for (String chunk : chunks) {
-//
-//                String ssml = buildSsml(chunk);
-//
-//                SynthesizeSpeechRequest request = SynthesizeSpeechRequest.builder()
-//                        .engine(Engine.GENERATIVE)
-//                        .voiceId(voice)
-//                        .outputFormat(OutputFormat.MP3)
-//                        .textType(TextType.SSML)
-//                        .text(ssml)
-//                        .build();
-//
-//                try (ResponseInputStream<SynthesizeSpeechResponse> audio =
-//                             polly.synthesizeSpeech(request)) {
-//
-//                    audio.transferTo(outputStream);
-//                }
-//
-//                // Slight pause between narration chunks
-//                writePause(outputStream, 400);
-//            }
-//        }
-//    }
-//
-//    // =========================================================
-//    // TEXT CHUNKING (VIDEO)
-//    // =========================================================
-//
-//    private List<String> splitIntoChunks(String text) {
-//
-//        List<String> chunks = new ArrayList<>();
-//        StringBuilder current = new StringBuilder();
-//
-//        for (String sentence : text.split("(?<=[.!?])\\s+")) {
-//
-//            if (current.length() + sentence.length() > MAX_CHARS) {
-//                chunks.add(current.toString().trim());
-//                current.setLength(0);
-//            }
-//
-//            current.append(sentence).append(" ");
-//        }
-//
-//        if (!current.isEmpty()) {
-//            chunks.add(current.toString().trim());
-//        }
-//
-//        return chunks;
-//    }
 
-    // =========================================================
-    // INTERNAL MODEL
-    // =========================================================
 
     private record PodcastLine(String speaker, String text) {
 

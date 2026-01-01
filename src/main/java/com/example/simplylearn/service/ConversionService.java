@@ -25,12 +25,21 @@ public class ConversionService {
 
     private final SlideshowService slideshowService;
 
-    public ConversionService(FileUploadRepository repo, StorageService storageService, OpenAIService openAIService, PollyService pollyService, SlideshowService slideshowService) {
+    private final AudioService audioService;
+
+    private final ImageGenerationService imageService;
+
+    private final VideoService videoService;
+
+    public ConversionService(FileUploadRepository repo, StorageService storageService, OpenAIService openAIService, PollyService pollyService, SlideshowService slideshowService, AudioService audioService, ImageGenerationService imageService, VideoService videoService) {
         this.repo = repo;
         this.storageService = storageService;
         this.openAIService = openAIService;
         this.pollyService = pollyService;
         this.slideshowService = slideshowService;
+        this.audioService = audioService;
+        this.imageService = imageService;
+        this.videoService = videoService;
     }
 
     @Async
@@ -52,6 +61,9 @@ public class ConversionService {
                     break;
                 case "quiz":
                     handleQuiz(upload);
+                    break;
+                case "video":
+                    handleVideo(upload);
                     break;
                 default:
                     throw new UnsupportedOperationException("Unsupported conversion type: " + upload
@@ -91,6 +103,23 @@ public class ConversionService {
                 .getId().toString() + ".pptx");
         this.slideshowService.createSlideshow(slideshowOutline, pptxPath);
         upload.setConvertedFilename(pptxPath.getFileName().toString());
+    }
+    private void handleVideo(FileUpload upload) throws Exception {
+        String text = readAllFiles(upload);
+        String videoScript = this.openAIService.createVideoOutline(text);
+        String uploadId = upload.getId().toString();
+
+        // Generate and upload audio files to S3
+        this.audioService.generateAudioFromScenes(videoScript, uploadId);
+
+        // Generate and upload image files to S3
+        this.imageService.generateImagesFromScenes(videoScript, uploadId);
+
+        // Stitch into MP4
+        Path videoPath = this.storageService.resolveConverted(uploadId + ".mp4");
+        this.videoService.createVideoFromScenes(uploadId, videoPath);
+
+        upload.setConvertedFilename(videoPath.getFileName().toString());
     }
     private void handleQuiz(FileUpload upload) throws Exception{
         String text = readAllFiles(upload);

@@ -30,6 +30,48 @@ public class OpenAIService {
         String prompt = "You are a teacher creating a slideshow for students.\n\nConvert the study material below into a slideshow outline.\n\nSTRICT RULES:\n- Each slide must have a short, clear title\n- Bullet points must be short and student-friendly\n- No paragraphs\n- No extra commentary\n- Do not repeat ideas across slides\n\nLENIENT RULES:\n- Have around 4 bullets per slide (strictly between 3 and 5)\n- Create enough slides to cover all key concepts (aim for 5slides, but more or fewer is acceptable)\n- For each slide, also provide a short visual description suitable for an illustration.\n\nREQUIRED FORMAT (VERY IMPORTANT FOLLOW EXACTLY):\n\nSlide 1: Title here\n- Bullet 1\n- Bullet 2\n- Bullet 3\n- Bullet 4\nImage: short description of an illustration\n\nSlide 2: Title here\n- Bullet 1\n- Bullet 2\n- Bullet 3\n- Bullet 4\nImage: short description of an illustration\n\nStudy material:\n\n\n\n" + inputText;
         return runChat(prompt);
     }
+    public String createVideoOutline(String inputText){
+        String prompt = """
+                You are a professional educational video scriptwriter and storyboard creator.
+                
+                Take the study material provided below and create a clear, engaging video concept for students.
+                
+                Generate a JSON array named "scenes". Each element must have:
+                {
+                "sceneNumber: integer (starting from 1),
+                "script": "a few sentences of narration text that clearly explains the concept in this segment. Use clear and engaging language for students."
+                "illustrationIdea": "A short, vivid, detailed description of the visual or image that best represents this scene. MAKE SURE IMAGE IS KID FRIENDLY, and not too complex. Avoid prompts that will give weird and wonky images. Stick to simply, kid friendly descriptions. Make sure there are no faces in the image or people. Make sure images are simple."
+                }
+                Rules:
+                - Make between 5 and 15 scenes, depending on the length of the material.
+                - Use concise, student‑friendly language.
+                - Do not include introductions or closing statements—stick to the content.
+                - Use JSON only. No commentary, no markdown, no extra text.
+                
+                Example output:
+                {
+                  "scenes": [
+                    {
+                      "sceneNumber": 1,
+                      "script": "[Script text for scene 1]",
+                      "illustrationIdea": "[Illustration idea for scene 1]"
+                    },
+                    {
+                      "sceneNumber": 2,
+                      "script": "[Script text for scene 2]",
+                      "illustrationIdea": "[Illustration idea for scene 2]"
+                    },
+                    {
+                      "sceneNumber": 3,
+                      "script": "[Script text for scene 3]",
+                      "illustrationIdea": "[Illustration idea for scene 3]"
+                    }
+                  ]
+                } 
+                Study material:
+                """ + inputText;
+        return runChat(prompt);
+    }
     public String createQuiz(String inputText){
         String prompt = """
 You are a helpful AI that creates educational quizzes.
