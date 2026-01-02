@@ -131,4 +131,56 @@ public class ImageGenerationService {
 
         System.out.println("Uploaded image to S3: s3://" + bucketName + "/" + s3Key);
     }
+
+    // =====================================================
+    // NEW METHOD FOR SLIDESHOW IMAGE GENERATION
+    // =====================================================
+
+    /**
+     * Generate a single image using DALL-E and return the image bytes
+     * This method is useful for embedding images directly (e.g., in PowerPoint)
+     * @param prompt The image description/prompt
+     * @return byte array of the generated PNG image
+     */
+    public byte[] generateSingleImage(String prompt) throws Exception {
+        String dalleUrl = "https://api.openai.com/v1/images/generations";
+
+        // Prepare request body
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("model", "dall-e-3");
+        requestBody.put("prompt", prompt);
+        requestBody.put("n", 1);
+        requestBody.put("size", "1024x1024");
+        requestBody.put("quality", "standard");
+
+        // Set headers
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set("Authorization", "Bearer " + openAiApiKey);
+
+        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+
+        // Make API call to DALL-E
+        ResponseEntity<String> response = restTemplate.exchange(
+                dalleUrl,
+                HttpMethod.POST,
+                entity,
+                String.class
+        );
+
+        // Get image URL from response
+        JsonNode responseJson = objectMapper.readTree(response.getBody());
+        String imageUrl = responseJson.get("data").get(0).get("url").asText();
+
+        // Download image from DALL-E URL and return bytes
+        try (InputStream in = new URL(imageUrl).openStream();
+             ByteArrayOutputStream buffer = new ByteArrayOutputStream()) {
+            byte[] data = new byte[8192];
+            int bytesRead;
+            while ((bytesRead = in.read(data)) != -1) {
+                buffer.write(data, 0, bytesRead);
+            }
+            return buffer.toByteArray();
+        }
+    }
 }

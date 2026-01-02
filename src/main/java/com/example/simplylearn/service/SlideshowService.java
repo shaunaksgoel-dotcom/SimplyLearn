@@ -1,10 +1,11 @@
 package com.example.simplylearn.service;
 
+import org.apache.poi.sl.usermodel.PictureData;
 import org.apache.poi.xslf.usermodel.*;
 import org.springframework.stereotype.Service;
 
 import java.awt.Rectangle;
-import java.io.OutputStream;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -13,146 +14,106 @@ import java.util.List;
 @Service
 public class SlideshowService {
 
+    private final ImageGenerationService imageGenerationService;
+
+    public SlideshowService(ImageGenerationService imageGenerationService) {
+        this.imageGenerationService = imageGenerationService;
+    }
+
     public void createSlideshow(String aiText, Path outputPptx) throws Exception {
         List<SlideData> slides = parseSlides(aiText);
-        XMLSlideShow ppt = new XMLSlideShow();
-        try {
-            OutputStream out = Files.newOutputStream(outputPptx, new java.nio.file.OpenOption[0]);
-            try {
-                for (SlideData slideData : slides)
-                    createSlide(ppt, slideData);
+
+        try (XMLSlideShow ppt = new XMLSlideShow()) {
+            for (SlideData slideData : slides) {
+                createSlideWithImage(ppt, slideData);
+            }
+
+            try (OutputStream out = Files.newOutputStream(outputPptx)) {
                 ppt.write(out);
-                if (out != null)
-                    out.close();
-            } catch (Throwable throwable) {
-                if (out != null)
-                    try {
-                        out.close();
-                    } catch (Throwable throwable1) {
-                        throwable.addSuppressed(throwable1);
-                    }
-                throw throwable;
             }
-            ppt.close();
-        } catch (Throwable throwable) {
-            try {
-                ppt.close();
-            } catch (Throwable throwable1) {
-                throwable.addSuppressed(throwable1);
-            }
-            throw throwable;
         }
     }
 
-    private void createSlide(XMLSlideShow ppt, SlideData data) {
+    private void createSlideWithImage(XMLSlideShow ppt, SlideData data) throws Exception {
         XSLFSlide slide = ppt.createSlide();
+
+        // Title box at the top
         XSLFTextBox titleBox = slide.createTextBox();
         titleBox.setAnchor(new Rectangle(50, 20, 620, 60));
         XSLFTextRun titleRun = titleBox.addNewTextParagraph().addNewTextRun();
         titleRun.setText(data.title);
-        titleRun.setFontSize(Double.valueOf(28.0D));
+        titleRun.setFontSize(28.0);
         titleRun.setBold(true);
+
+        // Bullet points box on the left side
         XSLFTextBox bodyBox = slide.createTextBox();
-        bodyBox.setAnchor(new Rectangle(50, 100, 620, 300));
+        bodyBox.setAnchor(new Rectangle(50, 100, 620, 280));
         for (String bullet : data.bullets) {
             XSLFTextParagraph p = bodyBox.addNewTextParagraph();
             p.setBullet(true);
             XSLFTextRun r = p.addNewTextRun();
             r.setText(bullet);
-            r.setFontSize(Double.valueOf(18.0D));
+            r.setFontSize(18.0);
         }
+
+        // Generate and add image in the bottom right if illustration description exists
         if (data.illustration != null && !data.illustration.isBlank()) {
-            XSLFTextBox imageHint = slide.createTextBox();
-            imageHint.setAnchor(new Rectangle(50, 420, 620, 40));
-            XSLFTextRun hintRun = imageHint.addNewTextParagraph().addNewTextRun();
-            hintRun.setText("Illustration idea: " + data.illustration);
-            hintRun.setFontSize(Double.valueOf(12.0D));
-            hintRun.setItalic(true);
+            try {
+                System.out.println("Generating image for: " + data.illustration);
+                byte[] imageBytes = imageGenerationService.generateSingleImage(data.illustration);
+
+                // Add image to slide
+                PictureData pictureData = ppt.addPicture(imageBytes, PictureData.PictureType.PNG);
+                XSLFPictureShape picture = slide.createPicture(pictureData);
+
+                // Position image in the BOTTOM RIGHT corner
+                // Standard slide is 720 (width) x 540 (height) in PowerPoint units
+                // Image: 280x280, positioned at bottom right with 20px margins
+                picture.setAnchor(new Rectangle(420, 240, 280, 280));
+
+                System.out.println("Image added to slide successfully");
+            } catch (Exception e) {
+                System.err.println("Failed to generate image for slide: " + e.getMessage());
+                e.printStackTrace();
+
+                // Fallback: add text description if image generation fails
+                XSLFTextBox imageHint = slide.createTextBox();
+                imageHint.setAnchor(new Rectangle(420, 460, 280, 60));
+                XSLFTextRun hintRun = imageHint.addNewTextParagraph().addNewTextRun();
+                hintRun.setText("Illustration idea: " + data.illustration);
+                hintRun.setFontSize(12.0);
+                hintRun.setItalic(true);
+            }
         }
     }
 
     private List<SlideData> parseSlides(String text) {
         List<SlideData> slides = new ArrayList<>();
         SlideData current = null;
+
         for (String line : text.split("\\r?\\n")) {
             line = line.trim();
-            if (!line.isEmpty())
-                if (line.startsWith("Slide")) {
-                    if (current != null)
-                        slides.add(current);
-                    current = new SlideData();
-                    current.title = line.substring(line.indexOf(":") + 1).trim();
-                } else if (line.startsWith("-") && current != null) {
-                    current.bullets.add(line.substring(1).trim());
-                } else if (!line.startsWith("-") && current != null) {
-                    current.illustration = line;
+            if (line.isEmpty()) continue;
+
+            if (line.startsWith("Slide")) {
+                if (current != null) {
+                    slides.add(current);
                 }
+                current = new SlideData();
+                current.title = line.substring(line.indexOf(":") + 1).trim();
+            } else if (line.startsWith("-") && current != null) {
+                current.bullets.add(line.substring(1).trim());
+            } else if (line.toLowerCase().startsWith("image:") && current != null) {
+                current.illustration = line.substring(6).trim();
+            }
         }
-        if (current != null)
+
+        if (current != null) {
             slides.add(current);
+        }
+
         return slides;
     }
-//    // =====================================================
-//    // 🎬 VIDEO SCENES (TEMP SLIDES)
-//    // =====================================================
-//    public void createVideoSlides(String videoScript, Path outputDir)
-//            throws Exception {
-//
-//        Files.createDirectories(outputDir);
-//
-//        List<String> scenes = parseScenes(videoScript);
-//
-//        try (XMLSlideShow ppt = new XMLSlideShow()) {
-//
-//            for (int i = 0; i < scenes.size(); i++) {
-//
-//                XSLFSlide slide = ppt.createSlide();
-//
-//                XSLFTextBox textBox = slide.createTextBox();
-//                textBox.setAnchor(new java.awt.Rectangle(50, 100, 620, 300));
-//
-//                XSLFTextRun run =
-//                        textBox.addNewTextParagraph().addNewTextRun();
-//                run.setText(scenes.get(i));
-//                run.setFontSize(20.0);
-//
-//                Path slideFile =
-//                        outputDir.resolve("scene-" + i + ".pptx");
-//
-//                try (OutputStream out =
-//                             Files.newOutputStream(slideFile)) {
-//                    ppt.write(out);
-//                }
-//
-//                ppt.getSlides().clear();
-//            }
-//        }
-//    }
-//
-//    private List<String> parseScenes(String script) {
-//
-//        List<String> scenes = new ArrayList<>();
-//        StringBuilder current = new StringBuilder();
-//
-//        for (String line : script.split("\\r?\\n")) {
-//
-//            line = line.trim();
-//            if (line.isEmpty()) continue;
-//
-//            if (line.equals("[[SCENE_BREAK]]")) {
-//                scenes.add(current.toString().trim());
-//                current.setLength(0);
-//            } else {
-//                current.append(line).append(" ");
-//            }
-//        }
-//
-//        if (!current.isEmpty()) {
-//            scenes.add(current.toString().trim());
-//        }
-//
-//        return scenes;
-//    }
 
     // =====================================================
     // INTERNAL MODEL
